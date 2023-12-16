@@ -20,27 +20,43 @@
 
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Margin="10,10,10,10">
+        <Grid
+            x:Name="LeftPage_Grid"
+            Grid.Column="0"
+            Margin="10,10,10,10">
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="0.95*" />
                 <RowDefinition Height="0.05*" />
             </Grid.RowDefinitions>
 
-            <RichTextBox Grid.Row="0" />
+            <TextBox
+                x:Name="DiaryLeftPage"
+                Grid.Row="0"
+                AcceptsReturn="True"
+                Text="{Binding LeftPageDocument}"
+                TextWrapping="Wrap" />
 
             <Button Grid.Row="1" Content="Prev Page" />
 
         </Grid>
 
-        <Grid Grid.Column="1" Margin="10,10,10,10">
+        <Grid
+            x:Name="RightPage_Grid"
+            Grid.Column="1"
+            Margin="10,10,10,10">
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="0.95*" />
                 <RowDefinition Height="0.05*" />
             </Grid.RowDefinitions>
 
-            <RichTextBox Grid.Row="0" />
+            <TextBox
+                x:Name="DiaryRightPage"
+                Grid.Row="0"
+                AcceptsReturn="True"
+                Text="{Binding RightPageDocument}"
+                TextWrapping="Wrap" />
 
             <Button Grid.Row="1" Content="Next Page" />
 

@@ -11,14 +11,14 @@ namespace MyDiaryApp.Models
 
         public string FileName {get; set;}
 
-        public FlowDocument? PageData {get; set;}
+        public string? PageData {get; set;}
 
         /// <summary>
         /// Constructor to initialize the properties and a File Path implicitely.
         /// </summary>
         /// <param name="pageData"></param>
         /// <param name="fileName"></param>
-        public DiaryPageDataModel(FlowDocument? pageData, string fileName)
+        public DiaryPageDataModel(string? pageData, string fileName)
         {
             string appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             
