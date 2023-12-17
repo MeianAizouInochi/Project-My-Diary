@@ -1,69 +1,56 @@
 ﻿using MyDiaryApp.Models;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Documents;
-using System.Windows.Markup;
-using System.Xml;
+using System.Xml.Serialization;
 
 namespace MyDiaryApp.DatabaseHandler
 {
     public class LocalStorageHandler
     {
-        public DiaryPageDataModel? DataModel { get; set; }
-
         /// <summary>
-        /// Constructor for Getting the File to save the data.
+        /// This method saves the data in a serialized format to a xml file. 
         /// </summary>
-        /// <param name="dataModel"></param>
-        public LocalStorageHandler(DiaryPageDataModel dataModel)
-        {
-            DataModel = dataModel;
-        }
-
-        /// <summary>
-        /// Constructor for getting the filename to load and send the data.
-        /// </summary>
-        /// <param name="fileName"></param>
-        public LocalStorageHandler(string fileName) 
-        {
-            DataModel = new DiaryPageDataModel(null, fileName);
-        }
-
-        /// <summary>
-        /// This method asynchronously saves the data of the flowdocument to a file as per the data inside the DiaryPageDataModel object.
-        /// </summary>
-        /// <returns>Nothing</returns>
-        public async Task SavePageData()
+        /// <typeparam name="T"></typeparam>
+        /// <param name="DataModel"></param>
+        /// <param name="FILE_PATH"></param>
+        /// <returns>Task</returns>
+        public async Task SavePageData<T>(T DataModel, string FILE_PATH) where T : class, new()
         {
             if (DataModel != null)
             {
-                using (XmlWriter writer = XmlWriter.Create(DataModel.FILE_PATH))
+                XmlSerializer serializer = new XmlSerializer(typeof(DiaryPageDataModel));
+
+                using (StreamWriter writer = new StreamWriter(FILE_PATH))
                 {
-                    await Task.Run(() => XamlWriter.Save(DataModel.PageData, writer));
+                    await Task.Run(() => serializer.Serialize(writer, DataModel));
                 }
             }
         }
 
         /// <summary>
-        /// This method loads the Data of a diary page i.e. flowdocument which is stored as a xaml file in the appdata, into the DiaryPageDataModel Object
+        /// This method Loads the data stored in the xml file after deserializing it.
         /// </summary>
-        /// <returns>DiaryPageDataModel Object as a Task</returns>
-        public async Task<DiaryPageDataModel?> LoadPageData()
+        /// <typeparam name="T"></typeparam>
+        /// <param name="FILE_PATH"></param>
+        /// <returns>Task<T?></returns>
+        public async Task<T?> LoadPageData<T>(string FILE_PATH) where T : class, new()
         {
-            if (DataModel != null)
+            T? DataModel = null;
+
+            try
             {
-                try
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
+
+                using (StreamReader reader = new StreamReader(FILE_PATH))
                 {
-                    using (XmlReader reader = XmlReader.Create(DataModel.FILE_PATH))
-                    {
-                        DataModel.PageData = await Task.Run(() => (FlowDocument)XamlReader.Load(reader));
-                    }
+                    DataModel = await Task.Run(() => (T?)serializer.Deserialize(reader));
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error in loading the Page Data:{ex.Message}");
-                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error in loading the Page Data:{ex.Message}");
             }
 
             return DataModel;
