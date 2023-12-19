@@ -1,6 +1,7 @@
 ﻿using MyDiaryApp.Commands;
 using MyDiaryApp.Models;
 using System;
+using System.IO;
 using System.Windows.Input;
 
 namespace MyDiaryApp.ViewModels
@@ -54,6 +55,7 @@ namespace MyDiaryApp.ViewModels
 
         public string Date { get; set; }
 
+        public string Storage_Folder_Path { get; set; }
 
         public string FILE_PATH { get; set; }
 
@@ -63,7 +65,14 @@ namespace MyDiaryApp.ViewModels
 
         public MainViewModel()
         {
+
+            Storage_Folder_Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyDiaryApp");
+
+
+
             Date = DateTime.Now.ToString("dd-MM-yyyy");
+
+
 
 
 
@@ -71,5 +80,7 @@ namespace MyDiaryApp.ViewModels
 
             //TODO: Understand the WorkFLow of the app from the users perspective then continue development.
         }
+
+
     }
 }

@@ -7,6 +7,9 @@ using System.Xml.Serialization;
 
 namespace MyDiaryApp.DatabaseHandler
 {
+    /// <summary>
+    /// This class helps to store the object after serialization in a .xml format.
+    /// </summary>
     public class LocalStorageHandler
     {
         /// <summary>
