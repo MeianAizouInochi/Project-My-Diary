@@ -23,7 +23,7 @@ namespace MyDiaryApp.DatabaseHandler
         {
             if (DataModel != null)
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(DiaryPageDataModel));
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
 
                 using (StreamWriter writer = new StreamWriter(FILE_PATH))
                 {

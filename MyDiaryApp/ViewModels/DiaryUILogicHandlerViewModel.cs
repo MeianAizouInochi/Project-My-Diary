@@ -1,16 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MyDiaryApp.ViewModels
 {
     public class DiaryUILogicHandlerViewModel
     {
 
+        public bool DoesFileExists(string Folder, string FileName) 
+        {
 
+            if (File.Exists(Path.Combine(Folder, FileName)))
+            {
+                return true;
+            }
+
+            return false;
+        }
 
         public bool CanWrite(string filename) 
         {
