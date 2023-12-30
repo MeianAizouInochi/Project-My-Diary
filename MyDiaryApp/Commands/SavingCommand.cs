@@ -1,35 +1,69 @@
 ﻿using MyDiaryApp.DatabaseHandler;
+using MyDiaryApp.Models;
+using MyDiaryApp.ViewModels.Interfaces;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace MyDiaryApp.Commands
 {
-    public class SavingCommand<T> : CommandBase where T : class, new()
+    public class SavingCommand:CommandBase
     {
-        private T dataModel;
+        private IPageHandler _pageHandler;
 
-        private string fileName;
+        private string _folder_Path;
 
-        public SavingCommand(T DataModel, string filename)
+        private string FileName;
+
+        public SavingCommand(IPageHandler PageHandler, string Folder_Path, string fileName)
         {
-            dataModel = DataModel;
+            _pageHandler = PageHandler;
 
-            fileName = filename;
+            _folder_Path = Folder_Path;
+
+            FileName = fileName;
         }
 
         public override void Execute(object? parameter)
         {
-            _ = SaveData();
+            if (PageMemoryModel.NextPageStack.Count == 0)
+            {
+                _ = SaveData();
+            }
+            else
+            {
+                Debug.WriteLine("not in Today's Page of the Diary.");
+            }
+            
         }
 
         private async Task SaveData()
         {
             try 
             {
-                LocalStorageHandler localStorageHandler = new LocalStorageHandler();
+                DiaryPageDataModel? ToSavePageDataModel = _pageHandler.GetDataModel(FileName);
 
-                await localStorageHandler.SavePageData<T>(dataModel, fileName);
+                if (ToSavePageDataModel != null)
+                {
+                    LocalStorageHandler localStorageHandler = new LocalStorageHandler();
+
+                    await localStorageHandler.SavePageData<DiaryPageDataModel>(ToSavePageDataModel, Path.Combine(_folder_Path,FileName));
+
+                    DiaryHeuristicsModel? obj = await localStorageHandler.LoadPageData<DiaryHeuristicsModel>(Path.Combine(_folder_Path, PageMemoryModel.DiaryHeuristicsFileName));
+
+                    if (obj != null)
+                    {
+                        obj.CacheFileName = FileName;
+
+                        await localStorageHandler.SavePageData<DiaryHeuristicsModel>(obj, Path.Combine(_folder_Path, PageMemoryModel.DiaryHeuristicsFileName));
+                    }
+                    else
+                    {
+                        throw new Exception("Corrupted Diary Cache File!");
+                    }
+                }
+                
             }
             catch(Exception ex)
             {

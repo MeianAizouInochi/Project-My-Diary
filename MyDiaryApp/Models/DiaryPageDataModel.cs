@@ -7,9 +7,11 @@ namespace MyDiaryApp.Models
     {
         //public string? FILE_PATH;
 
+        public string? PrevFileName { get; set; }
+
         public int Side { get; set; }
 
-        public string? FileName {get; set;}
+        public string FileName {get; set;}
 
         public string? PageData {get; set;}
 
@@ -23,11 +25,10 @@ namespace MyDiaryApp.Models
         /// </summary>
         /// <param name="pageData"></param>
         /// <param name="fileName"></param>
-        public DiaryPageDataModel(string? pageData, string fileName, int side)
+        public DiaryPageDataModel(string? prevFileName, string? pageData, string fileName, int side)
         {
-            //string appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            
-            //string AppFolder = Path.Combine(appDataFolder, "MyDiaryApp");
+
+            PrevFileName = prevFileName;
 
             PageData = pageData;
 
@@ -35,7 +36,6 @@ namespace MyDiaryApp.Models
 
             Side = side;
 
-            //FILE_PATH = Path.Combine(AppFolder, FileName); 
         }
 
     }

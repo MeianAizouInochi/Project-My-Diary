@@ -3,20 +3,16 @@ namespace MyDiaryApp.Models
 {
     public class DiaryHeuristicsModel
     {
-        public string? PrevFileName { get; set; }
-
-        public string CurrentFileName { get; set; }
-
+        public string CacheFileName { get; set; }
 
         public DiaryHeuristicsModel()
         {
             
         }
 
-        public DiaryHeuristicsModel(string? PrevFileName = null, string CurrentFileName)
+        public DiaryHeuristicsModel(string CurrentFileName)
         {
-            this.CurrentFileName = CurrentFileName;
-            this.PrevFileName = PrevFileName;
+            this.CacheFileName = CurrentFileName;
         }
     }
 }

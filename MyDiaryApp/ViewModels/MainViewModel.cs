@@ -1,230 +1,346 @@
-﻿using MyDiaryApp.DatabaseHandler;
+﻿using MyDiaryApp.Commands;
+using MyDiaryApp.DatabaseHandler;
 using MyDiaryApp.Models;
+using MyDiaryApp.ViewModels.Interfaces;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace MyDiaryApp.ViewModels
 {
-    public class MainViewModel:ViewModelBase
+    public class MainViewModel:ViewModelBase, IPageHandler
     {
-        private const string DiaryHeuristicsModelFileName = "DiaryCache.xml";
+        private readonly string DiaryHeuristicsModelFileName = PageMemoryModel.DiaryHeuristicsFileName;
 
-        //TODO: Create Bi-Directional Data Relation between DiarypageDataModel object and,
-        //the string properties of left mpage and right page.
+        private const int LEFT = -1;
 
-        public DiaryPageDataModel? LeftPageDataModel { get; set; } 
+        private const int RIGHT = 1;
 
-        public DiaryPageDataModel? RightPageDataModel { get; set; }
+        private bool canWriteToLeft;
+
+        public bool CanWriteToLeft
+        {
+            get { return canWriteToLeft; }
+            set {
+                canWriteToLeft = value;
+
+                SaveButtonVis = (CanWriteToLeft != CanWriteToRight);
+
+                OnPropertyChanged(nameof(CanWriteToLeft));
+            }
+        }
+
+        private bool canWriteToRight;
+
+        public bool CanWriteToRight
+        {
+            get { return canWriteToRight; }
+            set { 
+                canWriteToRight = value;
+
+                SaveButtonVis = (CanWriteToRight != CanWriteToLeft);
+
+                OnPropertyChanged(nameof(CanWriteToRight));
+            }
+        }
+
+        private bool saveButtonVis;
+
+        public bool SaveButtonVis
+        {
+            get { return saveButtonVis; }
+            set 
+            { 
+                saveButtonVis = value;
+
+                OnPropertyChanged(nameof(SaveButtonVis));
+            }
+        }
+
+
+        public string Storage_Folder_Path { get; set; }
+
+        public string Date { get; set; }
+
+        public string CurrentFileName { get; set; }
+
+        private DiaryPageDataModel? leftPageDataModel;
+
+        public DiaryPageDataModel? LeftPageDataModel
+        {
+            get { 
+                return leftPageDataModel;
+            }
+            set {
+
+                leftPageDataModel = value;
+
+                if (leftPageDataModel != null)
+                {
+                    LeftPageDocument = leftPageDataModel.PageData;
+
+                    CanWriteToLeft = CanWriteTo(leftPageDataModel.FileName);
+                }
+                else
+                {
+                    LeftPageDocument = null;
+                    CanWriteToLeft = false;
+                }
+
+                OnPropertyChanged(nameof(LeftPageDataModel));
+            }
+        }
+
+        private DiaryPageDataModel? rightPageDataModel;
+
+        public DiaryPageDataModel? RightPageDataModel
+        {
+            get { 
+                return rightPageDataModel;
+            }
+            set { 
+                rightPageDataModel = value;
+
+                if (rightPageDataModel != null)
+                {
+                    RightPageDocument = rightPageDataModel.PageData;
+
+                    CanWriteToRight = CanWriteTo(rightPageDataModel.FileName);
+                }
+                else
+                {
+                    RightPageDocument = null;
+                    CanWriteToRight = false;
+                }
+
+                OnPropertyChanged(nameof(RightPageDataModel));
+            }
+        }
 
         private string? leftPageDocument;
 
-        public string? LeftPageDocument 
+        public string? LeftPageDocument
         {
             get
             {
                 return leftPageDocument;
             }
 
-            set 
+            set
             {
-                leftPageDocument = value;
 
-                LeftPageDataModel.PageData = leftPageDocument;
+                if (LeftPageDataModel != null)
+                {
+                    leftPageDocument = value;
+
+                    LeftPageDataModel.PageData = leftPageDocument;
+                }
 
                 OnPropertyChanged(nameof(LeftPageDocument));
+
             }
         }
 
-
         private string? rightPageDocument;
 
-        public string? RightPageDocument 
+        public string? RightPageDocument
         {
-            get 
+            get
             {
                 return rightPageDocument;
             }
 
-            set 
+            set
             {
-                rightPageDocument = value;
+                if (RightPageDataModel != null)
+                {
+                    rightPageDocument = value;
 
-                RightPageDataModel.PageData = rightPageDocument;
-
+                    RightPageDataModel.PageData = rightPageDocument;
+                }
                 OnPropertyChanged(nameof(RightPageDocument));
 
 
             }
         }
 
-        public string Date { get; set; }
+        public ICommand? ShowPrevCommand { get; set; }
 
-        public string Storage_Folder_Path { get; set; }
+        public ICommand? ShowNextCommand { get; set; }
 
-        public string FILE_PATH { get; set; }
+        public ICommand? SavePageCommand { get; set; }
 
-        private ICommand? LeftPageSaveCommand;
 
-        private ICommand? LoadCommand;
-
+        /// <summary>
+        /// Constructor of the MainView model Class.
+        /// This runs the inital Initialisations, and a Initial Page Loading Algorithm.
+        /// </summary>
         public MainViewModel()
         {
-
             Storage_Folder_Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyDiaryApp");
 
             Date = DateTime.Now.ToString("dd-MM-yyyy");
 
+            CurrentFileName = Date + ".xml";
+
             DoInitialProcess();
+
+            ShowPrevCommand = new PreviousPageCommand(this, Storage_Folder_Path);
+
+            ShowNextCommand = new NextPageCommand(this, Storage_Folder_Path);
+
+            SavePageCommand = new SavingCommand(this, Storage_Folder_Path, CurrentFileName);
         }
 
-
-        public async void DoInitialProcess()
+        /// <summary>
+        /// This method Runs the Initial Page Loading algorithm on the basis of the Stored Files integrity and availability.
+        /// </summary>
+        private async void DoInitialProcess()
         {
-            if (CheckIfFileExist(Storage_Folder_Path, Date + ".xml"))
+            try
             {
-                DiaryPageDataModel? TempObj_CurrentPage = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, Date+".xml");
-
-                if (TempObj_CurrentPage != null && TempObj_CurrentPage.Side == -1)
+                //Step 1: Check if the page of today's Diary already exists (i.e. the user might not be opening the diary first time today.)
+                if (CheckIfFileExist(Storage_Folder_Path, CurrentFileName))
                 {
-                    LeftPageDataModel = TempObj_CurrentPage;
+                    //Step 1.2: If true, try to Load its data.
+                    DiaryPageDataModel? TempObj_CurrentPage = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, CurrentFileName);
 
-                    RightPageDataModel = null;
+                    //Step 1.3: if the data is not null
+                    if (TempObj_CurrentPage != null)
+                    {
+                        if (TempObj_CurrentPage.Side == LEFT)
+                        {
+                            ReAssignDataModel(TempObj_CurrentPage, null);
+                        }
+                        else if (TempObj_CurrentPage.Side == RIGHT)
+                        {
+                            if (TempObj_CurrentPage.PrevFileName == null)
+                            {
+                                //TODO: Handle Missing Pointer to Previous File Error.
+                            }
+                            else
+                            {
+                                DiaryPageDataModel? _TempLeftPageModel = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, TempObj_CurrentPage.PrevFileName);
 
-                    //TODO: Update UI
+                                if (_TempLeftPageModel == null)
+                                {
+                                    //TODO: Handle Previous Page Object is NULL error.
+                                }
+                                else
+                                {
+                                    if (_TempLeftPageModel.Side == LEFT)
+                                    {
+                                        //TODO: Make Left Page Data Model Non - Editable in UI.
+
+                                        ReAssignDataModel(_TempLeftPageModel, TempObj_CurrentPage);
+                                    }
+                                    else
+                                    {
+                                        //TODO: Handle Wrong Side on Diary Page data Model Object error.
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            //TODO: Handle Error of Side value 0 in Diary Page Data Model Object.
+                        }
+
+                    }
+                    else
+                    {
+                        throw new Exception("Existing Current Page returns Null Object!");
+                    }
+
                 }
-
-                else if (TempObj_CurrentPage != null && TempObj_CurrentPage.Side == 1)
+                else
                 {
                     if (CheckIfFileExist(Storage_Folder_Path, DiaryHeuristicsModelFileName))
                     {
-                        DiaryHeuristicsModel? _Obj = await LoadData<DiaryHeuristicsModel>(Storage_Folder_Path, DiaryHeuristicsModelFileName);
+                        DiaryHeuristicsModel? _heuristicsTempObj = await LoadData<DiaryHeuristicsModel>(Storage_Folder_Path, DiaryHeuristicsModelFileName);
 
-                        if (_Obj != null) 
+                        if (_heuristicsTempObj == null)
                         {
-                            if (_Obj.PrevFileName == null)
-                            {
-                                //Handle Error
-                            }
-
-                            else if (_Obj.PrevFileName.Equals(_Obj.CurrentFileName))
-                            {
-                                //Handle Error
-                            }
-
-                            else
-                            {
-                                DiaryPageDataModel? _tempObj = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, _Obj.PrevFileName);
-
-                                LeftPageDataModel = _tempObj;
-
-                                //TODO: Make the object non-Editable in UI
-
-                                RightPageDataModel = TempObj_CurrentPage;
-
-                                //TODO: Make the object editable in the UI
-                            }
+                            throw new Exception("Error Occured in Loading the Data heuristics.");
                         }
-
                         else
                         {
-                            //TODO: Handle Error Situation and prompt for fixing.
+                            DiaryPageDataModel? _TempObjPrev = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, _heuristicsTempObj.CacheFileName);
+
+                            if (_TempObjPrev == null)
+                            {
+                                throw new Exception("The Diary Page Data Model Loaded from Data heuristics returned NULL object.");
+                            }
+                            else
+                            {
+                                if (_TempObjPrev.Side == LEFT)
+                                {
+                                    ReAssignDataModel(_TempObjPrev, new DiaryPageDataModel(_TempObjPrev.FileName, null, CurrentFileName, RIGHT));
+                                }
+                                else if (_TempObjPrev.Side == RIGHT)
+                                {
+                                    ReAssignDataModel(new DiaryPageDataModel(_TempObjPrev.FileName, null, CurrentFileName, LEFT), null);
+                                }
+                                else
+                                {
+                                    throw new Exception("Side Property have unintended value : 0");
+                                }
+                            }
                         }
-
                     }
-
                     else
                     {
-                        //TODO: Handle Error Situation and prompt for fixing.
+                        string[] FileList = Directory.GetFiles(Storage_Folder_Path); //Might become more expensive operation, the more entries increase in the application.
+
+                        if (FileList.Length == 0)
+                        {
+
+                            FirstRunProcess(); //Runs First Time File Creations and Document handling.
+
+                        }
+                        else
+                        {
+                            throw new Exception("File system is Corrupted. Diary Cache File is Missing");
+                        }
                     }
                 }
-
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Exception Occured in DoInitialProcess Method: " + ex.Message);    
             }
 
-            else
+        }
+
+        private void FirstRunProcess()
+        {
+            try
             {
-                if(CheckIfFileExist(Storage_Folder_Path,DiaryHeuristicsModelFileName))
-                {
-                    DiaryHeuristicsModel? _Obj = await LoadData<DiaryHeuristicsModel>(Storage_Folder_Path,DiaryHeuristicsModelFileName);
+                DiaryHeuristicsModel _diaryHeuristics = new DiaryHeuristicsModel(CurrentFileName);
 
-                    if (_Obj == null)
-                    {
-                        //TODO: Handle Error.
-                    }
+                SaveData<DiaryHeuristicsModel>(_diaryHeuristics, Storage_Folder_Path, DiaryHeuristicsModelFileName);
 
-                    else if (_Obj.PrevFileName.Equals(_Obj.CurrentFileName))
-                    {
-                        //TODO: Handle Error.
-                    }
+                DiaryPageDataModel _diaryPageDataModel = new DiaryPageDataModel(null, null, CurrentFileName, LEFT);
 
-                    else
-                    {
-                        DiaryPageDataModel? _TempObjPrev = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, _Obj.CurrentFileName);
+                SaveData<DiaryPageDataModel>(_diaryPageDataModel, Storage_Folder_Path, CurrentFileName);
 
-                        if (_TempObjPrev != null)
-                        {
-                            if (_TempObjPrev.Side == -1)
-                            {
-                                LeftPageDataModel = _TempObjPrev;
-
-                                //TODO: Make object Above non-editable in UI
-
-                                RightPageDataModel = new DiaryPageDataModel(null, Date + ".xml", 1);
-
-                                SaveData<DiaryPageDataModel>(RightPageDataModel, Storage_Folder_Path, Date + ".xml");
-
-                                //TODO: Make the object Editable in UI
-
-
-                            }
-
-                            else if (_TempObjPrev.Side == 1)
-                            {
-                                RightPageDataModel = null;
-
-                                //TODO: Make the above object non-editable.
-
-                                LeftPageDataModel = new DiaryPageDataModel(null, Date + ".xml", -1);
-
-                                SaveData<DiaryPageDataModel>(LeftPageDataModel, Storage_Folder_Path, Date + ".xml");
-
-                                //TODO: Make the above object Editable.
-                            }
-
-                            else
-                            {
-                                //TODO: Handle Error.
-                            }
-                        }
-
-                        else
-                        {
-                            //TODO: Handle Error.
-                        }
-                    }
-                }
-
-                else
-                {
-
-                }
+                ReAssignDataModel(_diaryPageDataModel, null);
+            }
+            catch (Exception Ex)
+            {
+                Debug.WriteLine("Error occured in FirstRunProcess Method: " + Ex.Message);
             }
             
         }
 
-        public int CheckSide(DiaryPageDataModel obj)
-        {
-            return obj.Side;
-        }
-
-
-        public bool CheckIfFileExist(string Folder, string FileName)
+        private bool CheckIfFileExist(string Folder, string FileName)
         {
             return (new DiaryUILogicHandlerViewModel()).DoesFileExists(Folder, FileName);
         }
 
-        public async Task<T?> LoadData<T>(string Folder, string FileName) where T: class, new()
+        private async Task<T?> LoadData<T>(string Folder, string FileName) where T: class, new()
         {
             T? obj = await (new LocalStorageHandler()).LoadPageData<T>(Path.Combine(Folder, FileName));
 
@@ -232,10 +348,71 @@ namespace MyDiaryApp.ViewModels
 
         }
 
-        public async void SaveData<T>(T Object, string Folder, string FileName) where T: class, new()
+        private async void SaveData<T>(T Object, string Folder, string FileName) where T: class, new()
         {
             await new LocalStorageHandler().SavePageData<T>(Object, Path.Combine(Folder, FileName));
         }
 
+
+        /// <summary>
+        /// This method helps to reassign the DataModel Objects.
+        /// Usage in the App: Helps to reassign the DataModel Objects to Call the setter block and hence update the Text Shown in UI.
+        /// </summary>
+        /// <param name="_LeftPageDataModel"></param>
+        /// <param name="_RightPageDataModel"></param>
+        public void ReAssignDataModel(DiaryPageDataModel? _LeftPageDataModel, DiaryPageDataModel? _RightPageDataModel)
+        {
+            LeftPageDataModel = _LeftPageDataModel;
+            
+            RightPageDataModel = _RightPageDataModel;
+        }
+
+        /// <summary>
+        /// This returns a reference to the DiaryPageDataModel Object of the respective PageSide as provided in Param.
+        /// Param Value Range: -1 and 1
+        /// </summary>
+        /// <param name="SIDE"></param>
+        /// <returns></returns>
+        public DiaryPageDataModel? GetDataModel(int SIDE)
+        {
+            if (SIDE == LEFT)
+            {
+                return LeftPageDataModel;
+            }
+            else if(SIDE == RIGHT)
+            {
+                return RightPageDataModel;
+            }
+            else
+            {
+                return null; //throw error.
+            }
+        }
+
+        private bool CanWriteTo(string FileName)
+        {
+            return (new DiaryUILogicHandlerViewModel()).CanWrite(FileName);
+        }
+
+        public DiaryPageDataModel? GetDataModel(string fileName)
+        {
+            if(LeftPageDataModel!=null)
+            {
+                if (LeftPageDataModel.FileName.Equals(fileName))
+                {
+                    return LeftPageDataModel;
+                }
+            }
+            
+            if(RightPageDataModel!=null)
+            {
+                if(RightPageDataModel.FileName.Equals(fileName))
+                {
+                    return RightPageDataModel;
+                }
+            }
+
+            return null;
+        }
     }
 }

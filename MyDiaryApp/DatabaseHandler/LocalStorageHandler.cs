@@ -1,5 +1,5 @@
-﻿using MyDiaryApp.Models;
-using System;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -21,15 +21,27 @@ namespace MyDiaryApp.DatabaseHandler
         /// <returns>Task</returns>
         public async Task SavePageData<T>(T DataModel, string FILE_PATH) where T : class, new()
         {
-            if (DataModel != null)
+            try
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(T));
-
-                using (StreamWriter writer = new StreamWriter(FILE_PATH))
+                if (DataModel != null)
                 {
-                    await Task.Run(() => serializer.Serialize(writer, DataModel));
+                    XmlSerializer serializer = new XmlSerializer(typeof(T));
+
+                    using (StreamWriter writer = new StreamWriter(FILE_PATH))
+                    {
+                        await Task.Run(() => serializer.Serialize(writer, DataModel));
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error in Saving Method [LocalStorageHandler]: " + ex.Message);
+
+                string ExMessage = "Error in Saving Method [LocalStorageHandler]: " + ex.Message;
+
+                throw new Exception(ExMessage); //TODO: or create MesasgeBox for user to rexecute the method, or Exit application.
+            }
+            
         }
 
         /// <summary>
@@ -53,7 +65,9 @@ namespace MyDiaryApp.DatabaseHandler
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error in loading the Page Data:{ex.Message}");
+                Debug.WriteLine("Error in Loading Method [LocalStorageHandler]: " + ex.Message);
+
+                return null;
             }
 
             return DataModel;
