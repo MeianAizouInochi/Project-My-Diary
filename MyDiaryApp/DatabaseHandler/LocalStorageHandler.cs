@@ -35,11 +35,9 @@ namespace MyDiaryApp.DatabaseHandler
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error in Saving Method [LocalStorageHandler]: " + ex.Message);
-
                 string ExMessage = "Error in Saving Method [LocalStorageHandler]: " + ex.Message;
 
-                throw new Exception(ExMessage); //TODO: or create MesasgeBox for user to rexecute the method, or Exit application.
+                throw new Exception(ExMessage);
             }
             
         }
@@ -65,9 +63,7 @@ namespace MyDiaryApp.DatabaseHandler
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error in Loading Method [LocalStorageHandler]: " + ex.Message);
-
-                return null;
+                throw new Exception("Error in Loading Method [LocalStorageHandler]: " + ex.Message);
             }
 
             return DataModel;

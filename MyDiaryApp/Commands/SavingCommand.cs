@@ -1,4 +1,5 @@
 ﻿using MyDiaryApp.DatabaseHandler;
+using MyDiaryApp.ErrorHandler;
 using MyDiaryApp.Models;
 using MyDiaryApp.ViewModels.Interfaces;
 using System;
@@ -67,7 +68,9 @@ namespace MyDiaryApp.Commands
             }
             catch(Exception ex)
             {
-                Debug.WriteLine($"Error Occured during Saving Data:{ex.Message}");
+                ErrorLogWriter ErrorWriter = new ErrorLogWriter();
+
+                ErrorWriter.LogWriter($"Error Occured during Saving Data:{ex.Message}");
             }
         }
     }

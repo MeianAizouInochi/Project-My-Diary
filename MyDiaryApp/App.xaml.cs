@@ -1,6 +1,5 @@
 ﻿using MyDiaryApp.ViewModels;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
@@ -14,11 +13,7 @@ namespace MyDiaryApp
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            Debug.WriteLine("Entered overrided onStartUp method of App class.");
-
             base.OnStartup(e);
-
-            //TODO: Handle Folder creation and UAC request here.
 
             string BaseAppFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyDiaryApp");
 
@@ -26,17 +21,17 @@ namespace MyDiaryApp
             {
                 Directory.CreateDirectory(BaseAppFolder);    
             }
-
+            if (!File.Exists(Path.Combine(BaseAppFolder, "MyDiaryApp_Log.txt")))
+            {
+                File.Create(Path.Combine(BaseAppFolder, "MyDiaryApp_Log.txt"));
+            }
 
             MainWindow = new MainWindow() {
 
                  DataContext = new MainViewModel()
-
             };
 
             MainWindow.Show();
-
-            
         }
     }
 }

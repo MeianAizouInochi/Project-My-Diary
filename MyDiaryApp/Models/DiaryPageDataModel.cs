@@ -5,8 +5,6 @@ namespace MyDiaryApp.Models
     [Serializable]
     public class DiaryPageDataModel
     {
-        //public string? FILE_PATH;
-
         public string? PrevFileName { get; set; }
 
         public int Side { get; set; }

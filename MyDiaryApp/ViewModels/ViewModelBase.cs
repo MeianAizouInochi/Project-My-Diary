@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace MyDiaryApp.ViewModels
 {
@@ -18,7 +13,7 @@ namespace MyDiaryApp.ViewModels
 
         public ViewModelBase() 
         {
-            //TODO: Give Debug Line and create destructor debug line too
+            //Debug.WriteLine("Initialised the ViewModelBase Object");
         }
     }
 }

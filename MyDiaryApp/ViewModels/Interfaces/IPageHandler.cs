@@ -9,5 +9,7 @@ namespace MyDiaryApp.ViewModels.Interfaces
         DiaryPageDataModel? GetDataModel(int SIDE);
 
         DiaryPageDataModel? GetDataModel(string fileName);
+
+        string GetTodayFileName();
     }
 }

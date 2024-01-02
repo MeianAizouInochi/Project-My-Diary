@@ -1,7 +1,10 @@
 ﻿using MyDiaryApp.DatabaseHandler;
+using MyDiaryApp.ErrorHandler;
 using MyDiaryApp.Models;
 using MyDiaryApp.ViewModels.Interfaces;
+using System;
 using System.IO;
+using System.Windows;
 
 namespace MyDiaryApp.Commands
 {
@@ -24,64 +27,61 @@ namespace MyDiaryApp.Commands
             
         }
 
-
         private async void GetNextPage()
         {
-            if (PageMemoryModel.NextPageStack.Count == 0)
+            try
             {
-                //TODO: Write logic for reaching the end of the diary.
-            }
-            else
-            {
-                string? TempFileNameLeft = PageMemoryModel.NextPageStack.Pop();
-
-                string? TempFileNameRight = PageMemoryModel.NextPageStack.Pop();
-
-                LocalStorageHandler _localStorageHandler = new LocalStorageHandler();
-
-                if (TempFileNameLeft != null)
+                if (PageMemoryModel.NextPageStack.Count == 0)
                 {
-                    if (TempFileNameRight != null)
-                    {
-                        DiaryPageDataModel? _NewLeft = await _localStorageHandler.LoadPageData<DiaryPageDataModel>(Path.Combine(_FolderPath, TempFileNameLeft));
+                    MessageBox.Show("Reached the End of the Diary!");
 
-                        DiaryPageDataModel? _NewRight = await _localStorageHandler.LoadPageData<DiaryPageDataModel>(Path.Combine(_FolderPath,TempFileNameRight));
-
-                        _pageHandler.ReAssignDataModel(_NewLeft, _NewRight);
-                    }
-                    else
-                    {
-                        if (PageMemoryModel.NextPageStack.Count == 0)
-                        {
-                            //might be just the last page pair of the diary, and we will be writting on the left page.
-                            DiaryPageDataModel? _NewLeft = await _localStorageHandler.LoadPageData<DiaryPageDataModel>(Path.Combine(_FolderPath, TempFileNameLeft));
-
-                            _pageHandler.ReAssignDataModel(_NewLeft, null);
-
-
-                        }
-                        else
-                        {
-                            //TODO: Handle Error.
-                        }
-
-
-                    }
+                    return;
                 }
                 else
                 {
-                    if (PageMemoryModel.NextPageStack.Count == 0)
+                    string? TempFileNameLeft = PageMemoryModel.NextPageStack.Pop();
+
+                    string? TempFileNameRight = PageMemoryModel.NextPageStack.Pop();
+
+                    LocalStorageHandler _localStorageHandler = new LocalStorageHandler();
+
+                    if (TempFileNameLeft != null)
                     {
-                        //TODO: Show message "Reached End of Diary"
+                        if (TempFileNameRight != null)
+                        {
+                            DiaryPageDataModel? _NewLeft = await _localStorageHandler.LoadPageData<DiaryPageDataModel>(Path.Combine(_FolderPath, TempFileNameLeft));
+
+                            DiaryPageDataModel? _NewRight = await _localStorageHandler.LoadPageData<DiaryPageDataModel>(Path.Combine(_FolderPath, TempFileNameRight));
+
+                            _pageHandler.ReAssignDataModel(_NewLeft, _NewRight);
+                        }
+                        else
+                        {
+                            if (PageMemoryModel.NextPageStack.Count == 0)
+                            {
+                                DiaryPageDataModel? _NewLeft = await _localStorageHandler.LoadPageData<DiaryPageDataModel>(Path.Combine(_FolderPath, TempFileNameLeft));
+
+                                _pageHandler.ReAssignDataModel(_NewLeft, null);
+                            }
+                            else
+                            {
+                                throw new Exception("right Side File  Name is Null, even when there are remaining files in the memory stack.");
+                            }
+                        }
                     }
                     else
                     {
-                        //TODO: Handle Error.
+                        throw new Exception("the Left Side File Poped From Stack Gives Null name");
                     }
 
+
                 }
+            }
+            catch (Exception Ex)
+            {
+                ErrorLogWriter ErrorWriter = new ErrorLogWriter();
 
-
+                ErrorWriter.LogWriter("Error Occured in Next Page Command:" + Ex.Message);
             }
         }
     }

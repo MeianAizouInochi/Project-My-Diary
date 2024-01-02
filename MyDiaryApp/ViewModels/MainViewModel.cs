@@ -1,5 +1,6 @@
 ﻿using MyDiaryApp.Commands;
 using MyDiaryApp.DatabaseHandler;
+using MyDiaryApp.ErrorHandler;
 using MyDiaryApp.Models;
 using MyDiaryApp.ViewModels.Interfaces;
 using System;
@@ -58,7 +59,6 @@ namespace MyDiaryApp.ViewModels
                 OnPropertyChanged(nameof(SaveButtonVis));
             }
         }
-
 
         public string Storage_Folder_Path { get; set; }
 
@@ -160,6 +160,17 @@ namespace MyDiaryApp.ViewModels
 
                     RightPageDataModel.PageData = rightPageDocument;
                 }
+                else
+                {
+                    if (PageMemoryModel.NextPageStack.Count == 0)
+                    {
+                        rightPageDocument = null;
+                    }
+                    else 
+                    {
+                        Debug.WriteLine("Something has gone wrong with RightPageDataModel object!");
+                    }
+                }
                 OnPropertyChanged(nameof(RightPageDocument));
 
 
@@ -187,11 +198,11 @@ namespace MyDiaryApp.ViewModels
 
             DoInitialProcess();
 
-            ShowPrevCommand = new PreviousPageCommand(this, Storage_Folder_Path);
+            ShowPrevCommand = new PreviousPageCommand(this, PageMemoryModel.BasePath);
 
-            ShowNextCommand = new NextPageCommand(this, Storage_Folder_Path);
+            ShowNextCommand = new NextPageCommand(this, PageMemoryModel.BasePath);
 
-            SavePageCommand = new SavingCommand(this, Storage_Folder_Path, CurrentFileName);
+            SavePageCommand = new SavingCommand(this, PageMemoryModel.BasePath, CurrentFileName);
         }
 
         /// <summary>
@@ -201,13 +212,10 @@ namespace MyDiaryApp.ViewModels
         {
             try
             {
-                //Step 1: Check if the page of today's Diary already exists (i.e. the user might not be opening the diary first time today.)
-                if (CheckIfFileExist(Storage_Folder_Path, CurrentFileName))
+                if (CheckIfFileExist(PageMemoryModel.BasePath, CurrentFileName))
                 {
-                    //Step 1.2: If true, try to Load its data.
-                    DiaryPageDataModel? TempObj_CurrentPage = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, CurrentFileName);
+                    DiaryPageDataModel? TempObj_CurrentPage = await LoadData<DiaryPageDataModel>(PageMemoryModel.BasePath, CurrentFileName);
 
-                    //Step 1.3: if the data is not null
                     if (TempObj_CurrentPage != null)
                     {
                         if (TempObj_CurrentPage.Side == LEFT)
@@ -216,44 +224,40 @@ namespace MyDiaryApp.ViewModels
                         }
                         else if (TempObj_CurrentPage.Side == RIGHT)
                         {
-                            if (TempObj_CurrentPage.PrevFileName == null)
-                            {
-                                //TODO: Handle Missing Pointer to Previous File Error.
-                            }
-                            else
+                            if (TempObj_CurrentPage.PrevFileName != null)
                             {
                                 DiaryPageDataModel? _TempLeftPageModel = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, TempObj_CurrentPage.PrevFileName);
 
-                                if (_TempLeftPageModel == null)
-                                {
-                                    //TODO: Handle Previous Page Object is NULL error.
-                                }
-                                else
+                                if (_TempLeftPageModel != null)
                                 {
                                     if (_TempLeftPageModel.Side == LEFT)
                                     {
-                                        //TODO: Make Left Page Data Model Non - Editable in UI.
-
                                         ReAssignDataModel(_TempLeftPageModel, TempObj_CurrentPage);
                                     }
                                     else
                                     {
-                                        //TODO: Handle Wrong Side on Diary Page data Model Object error.
+                                        throw new Exception($"The {_TempLeftPageModel.FileName} has a Wrong value of property Side.");
                                     }
                                 }
+                                else
+                                {
+                                    throw new Exception($"The loading of previous page: {TempObj_CurrentPage.PrevFileName} of Current page: {CurrentFileName} have resulted in null Object denoting a corrupted File error.");
+                                }
+                            }
+                            else
+                            {
+                                throw new Exception($"The Current Page: {CurrentFileName} Object had null Value in Previous File Name. This Created no Link to its Previous File for the Linked List Implementation.");
                             }
                         }
                         else
                         {
-                            //TODO: Handle Error of Side value 0 in Diary Page Data Model Object.
+                            throw new Exception($"The object of Current Page: {CurrentFileName} had Side Value 0.");
                         }
-
                     }
                     else
                     {
-                        throw new Exception("Existing Current Page returns Null Object!");
+                        throw new Exception($"Existing Current Page named: {CurrentFileName} returns Null Object!");
                     }
-
                 }
                 else
                 {
@@ -309,9 +313,10 @@ namespace MyDiaryApp.ViewModels
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception Occured in DoInitialProcess Method: " + ex.Message);    
-            }
+                ErrorLogWriter ErrorWriter = new ErrorLogWriter();
 
+                ErrorWriter.LogWriter("Exception Occured in DoInitialProcess Method: " + ex.Message);
+            }
         }
 
         private void FirstRunProcess()
@@ -330,7 +335,9 @@ namespace MyDiaryApp.ViewModels
             }
             catch (Exception Ex)
             {
-                Debug.WriteLine("Error occured in FirstRunProcess Method: " + Ex.Message);
+                ErrorLogWriter ErrorWriter = new ErrorLogWriter();
+
+                ErrorWriter.LogWriter("Error occured in FirstRunProcess Method: " + Ex.Message);
             }
             
         }
@@ -353,7 +360,6 @@ namespace MyDiaryApp.ViewModels
             await new LocalStorageHandler().SavePageData<T>(Object, Path.Combine(Folder, FileName));
         }
 
-
         /// <summary>
         /// This method helps to reassign the DataModel Objects.
         /// Usage in the App: Helps to reassign the DataModel Objects to Call the setter block and hence update the Text Shown in UI.
@@ -363,7 +369,12 @@ namespace MyDiaryApp.ViewModels
         public void ReAssignDataModel(DiaryPageDataModel? _LeftPageDataModel, DiaryPageDataModel? _RightPageDataModel)
         {
             LeftPageDataModel = _LeftPageDataModel;
-            
+
+            if (_RightPageDataModel == null)
+            {
+                
+            }
+
             RightPageDataModel = _RightPageDataModel;
         }
 
@@ -413,6 +424,11 @@ namespace MyDiaryApp.ViewModels
             }
 
             return null;
+        }
+
+        public string GetTodayFileName()
+        {
+            return CurrentFileName;
         }
     }
 }
