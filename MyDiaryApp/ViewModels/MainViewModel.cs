@@ -13,8 +13,6 @@ namespace MyDiaryApp.ViewModels
 {
     public class MainViewModel:ViewModelBase, IPageHandler
     {
-        private readonly string DiaryHeuristicsModelFileName = PageMemoryModel.DiaryHeuristicsFileName;
-
         private const int LEFT = -1;
 
         private const int RIGHT = 1;
@@ -59,8 +57,6 @@ namespace MyDiaryApp.ViewModels
                 OnPropertyChanged(nameof(SaveButtonVis));
             }
         }
-
-        public string Storage_Folder_Path { get; set; }
 
         public string Date { get; set; }
 
@@ -194,8 +190,6 @@ namespace MyDiaryApp.ViewModels
         /// </summary>
         public MainViewModel()
         {
-            Storage_Folder_Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyDiaryApp");
-
             Date = DateTime.Now.ToString("dd-MM-yyyy");
 
             CurrentFileName = Date + ".xml";
@@ -234,7 +228,7 @@ namespace MyDiaryApp.ViewModels
                         {
                             if (TempObj_CurrentPage.PrevFileName != null)
                             {
-                                DiaryPageDataModel? _TempLeftPageModel = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, TempObj_CurrentPage.PrevFileName);
+                                DiaryPageDataModel? _TempLeftPageModel = await LoadData<DiaryPageDataModel>(PageMemoryModel.BasePath, TempObj_CurrentPage.PrevFileName);
 
                                 if (_TempLeftPageModel != null)
                                 {
@@ -269,9 +263,9 @@ namespace MyDiaryApp.ViewModels
                 }
                 else
                 {
-                    if (CheckIfFileExist(Storage_Folder_Path, DiaryHeuristicsModelFileName))
+                    if (CheckIfFileExist(PageMemoryModel.BasePath, PageMemoryModel.DiaryHeuristicsFileName))
                     {
-                        DiaryHeuristicsModel? _heuristicsTempObj = await LoadData<DiaryHeuristicsModel>(Storage_Folder_Path, DiaryHeuristicsModelFileName);
+                        DiaryHeuristicsModel? _heuristicsTempObj = await LoadData<DiaryHeuristicsModel>(PageMemoryModel.BasePath, PageMemoryModel.DiaryHeuristicsFileName);
 
                         if (_heuristicsTempObj == null)
                         {
@@ -279,7 +273,7 @@ namespace MyDiaryApp.ViewModels
                         }
                         else
                         {
-                            DiaryPageDataModel? _TempObjPrev = await LoadData<DiaryPageDataModel>(Storage_Folder_Path, _heuristicsTempObj.CacheFileName);
+                            DiaryPageDataModel? _TempObjPrev = await LoadData<DiaryPageDataModel>(PageMemoryModel.BasePath, _heuristicsTempObj.CacheFileName);
 
                             if (_TempObjPrev == null)
                             {
@@ -304,11 +298,10 @@ namespace MyDiaryApp.ViewModels
                     }
                     else
                     {
-                        string[] FileList = Directory.GetFiles(Storage_Folder_Path); //Might become more expensive operation, the more entries increase in the application.
+                        string[] FileList = Directory.GetFiles(PageMemoryModel.BasePath); //Might become more expensive operation, the more entries increase in the application.
 
-                        if (FileList.Length == 0)
+                        if (FileList.Length <= 1)
                         {
-
                             FirstRunProcess(); //Runs First Time File Creations and Document handling.
 
                         }
@@ -333,11 +326,11 @@ namespace MyDiaryApp.ViewModels
             {
                 DiaryHeuristicsModel _diaryHeuristics = new DiaryHeuristicsModel(CurrentFileName);
 
-                SaveData<DiaryHeuristicsModel>(_diaryHeuristics, Storage_Folder_Path, DiaryHeuristicsModelFileName);
+                SaveData<DiaryHeuristicsModel>(_diaryHeuristics, PageMemoryModel.BasePath, PageMemoryModel.DiaryHeuristicsFileName);
 
                 DiaryPageDataModel _diaryPageDataModel = new DiaryPageDataModel(null, null, CurrentFileName, LEFT);
 
-                SaveData<DiaryPageDataModel>(_diaryPageDataModel, Storage_Folder_Path, CurrentFileName);
+                SaveData<DiaryPageDataModel>(_diaryPageDataModel, PageMemoryModel.BasePath, CurrentFileName);
 
                 ReAssignDataModel(_diaryPageDataModel, null);
             }
@@ -377,11 +370,6 @@ namespace MyDiaryApp.ViewModels
         public void ReAssignDataModel(DiaryPageDataModel? _LeftPageDataModel, DiaryPageDataModel? _RightPageDataModel)
         {
             LeftPageDataModel = _LeftPageDataModel;
-
-            if (_RightPageDataModel == null)
-            {
-                
-            }
 
             RightPageDataModel = _RightPageDataModel;
         }

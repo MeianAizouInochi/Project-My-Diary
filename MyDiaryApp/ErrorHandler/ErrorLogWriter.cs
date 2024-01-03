@@ -12,7 +12,7 @@ namespace MyDiaryApp.ErrorHandler
         {
             try
             {
-                using (StreamWriter sr = new StreamWriter(Path.Combine(PageMemoryModel.BasePath, PageMemoryModel.LogFile)))
+                using (StreamWriter sr = new StreamWriter(Path.Combine(PageMemoryModel.BasePath, PageMemoryModel.LogFile),true))
                 {
                     sr.WriteLine(Message);
                 }

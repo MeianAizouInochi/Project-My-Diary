@@ -107,8 +107,6 @@ namespace MyDiaryApp.Commands
                 ErrorWriter.LogWriter("Error Occured in Previous Page Command:" + Ex.Message);
                 
             }
-            
-
         }
     }
 }
