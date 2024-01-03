@@ -183,6 +183,10 @@ namespace MyDiaryApp.ViewModels
 
         public ICommand? SavePageCommand { get; set; }
 
+        public ICommand? CloseAppCommand { get; set; }
+
+        public ICommand? MinimizeAppCommand { get; set; }
+
 
         /// <summary>
         /// Constructor of the MainView model Class.
@@ -203,6 +207,10 @@ namespace MyDiaryApp.ViewModels
             ShowNextCommand = new NextPageCommand(this, PageMemoryModel.BasePath);
 
             SavePageCommand = new SavingCommand(this, PageMemoryModel.BasePath, CurrentFileName);
+
+            MinimizeAppCommand = new MinimizeCommand();
+
+            CloseAppCommand = new CloseCommand();
         }
 
         /// <summary>
