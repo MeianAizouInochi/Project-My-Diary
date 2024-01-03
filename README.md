@@ -7,3 +7,4 @@ Design Pattern used: MVVM
 Languages: C#, XAML  
 Storage type: Local XML Serialized Objects  
 Storage Location: <username>/AppData/Local/MyDiaryApp/<files>  
+Log File for Error Occurance Check is in Same Location as Above.  
