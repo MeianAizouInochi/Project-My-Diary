@@ -5,10 +5,18 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>MyDiaryApp.ico</ApplicationIcon>
+    <Title>My Diary App</Title>
+    <Description>This is an Application for writting Diary on Pc:)</Description>
+    <Copyright>Free</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/MeianAizouInochi/Project-My-Diary/tree/master/MyDiaryApp</RepositoryUrl>
+    <PackageIcon>DiaryInstallerIcon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="Assets\DiaryBackground.jpg" />
+    <None Remove="Assets\MyDiaryApp.ico" />
     <None Remove="Fonts\Fasthand\Fasthand-Regular.ttf" />
   </ItemGroup>
 
@@ -16,6 +24,10 @@
     <Content Include="Assets\DiaryBackground.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\MyDiaryApp.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="MyDiaryApp.ico" />
     <Resource Include="Fonts\Fasthand\Fasthand-Regular.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
@@ -23,6 +35,17 @@
 
   <ItemGroup>
     <Folder Include="Resources\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="C:\Users\meian\Downloads\DiaryInstallerIcon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
